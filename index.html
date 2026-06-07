@@ -204,7 +204,39 @@
         .slot-gold-range { border-color: #5c4a1f; background: #362b13; }
         .slot-gold-range.collected { border-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); background: linear-gradient(145deg, #7a6229 0%, #b8953d 100%); }
 
-        .high-rarity-tag { display: inline-flex; background: rgba(0, 0, 0, 0.8); padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; color: #fff; align-items: center; gap: 6px; border: 1px solid #d4af37; box-shadow: 0 2px 6px rgba(0,0,0,0.6); max-width: 90%; margin: 0 auto; white-space: nowrap; }
+        /* CORREGIDO: Rediseño del contenedor para ajustar textos largos sin desbordes */
+        .high-rarity-tag { 
+            display: flex; 
+            background: rgba(0, 0, 0, 0.8); 
+            padding: 4px 6px; 
+            border-radius: 6px; 
+            font-size: 0.75em; 
+            font-weight: bold; 
+            color: #fff; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 4px; 
+            border: 1px solid #d4af37; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6); 
+            width: 100%; 
+            max-width: 145px; 
+            margin: 0 auto; 
+            box-sizing: border-box; 
+        }
+
+        /* CORREGIDO: Clase helper para ajustar sutilmente la fuente ante textos muy extensos */
+        .high-rarity-tag.long-text {
+            font-size: 0.68em;
+            padding: 5px 4px;
+        }
+
+        /* CORREGIDO: Aseguramos que el texto respete su flujo interno sin saltos de línea forzados */
+        .high-rarity-tag span:last-child {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .gold-star   { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.9); font-size: 1.1em; line-height: 1; display: inline-block; }
         .silver-star { color: #c8d8e8; text-shadow: 0 0 5px rgba(180, 210, 240, 0.9); font-size: 1.1em; line-height: 1; display: inline-block; }
         
@@ -225,10 +257,10 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* NUEVO: Contenedor con leve margen lateral y soporte para desfasaje en cascada */
-        .stars-container-inner { display: inline-flex; align-items: center; gap: 1px; margin-right: 2px; }
+        /* Contenedor con leve margen lateral y soporte para desfasaje en cascada */
+        .stars-container-inner { display: inline-flex; align-items: center; gap: 1px; margin-right: 2px; flex-shrink: 0; }
         
-        /* NUEVO: Modificadores dinámicos para simular la alineación diagonal oficial TCG (escalonado hacia arriba o abajo) */
+        /* Modificadores dinámicos para simular la alineación diagonal oficial TCG (escalonado hacia arriba o abajo) */
         .stars-container-inner span:nth-child(2) { transform: translateY(-2px); }
         .stars-container-inner span:nth-child(3) { transform: translateY(-4px); }
         
@@ -389,7 +421,7 @@
                 numDesc: "Number: High to Low", nameAsc: "Name: A - Z", nameDesc: "Name: Z - A",
                 noSlots: "No slots match your filters.", progressMaster: "Master Set Progress",
                 progressNormal: "Set Progress", slotsCompleted: "slots completed", 
-                cardCollected: "✓ Collected", cardMissing: "✕ Not Collected", modeMaster: "Mode: Master Set", modeNormal: "Mode: Set"
+                cardCollected: "✓ Collected", cardMissing: "✕ Not Collected", modeMaster: "Mode: Mode Master Set", modeNormal: "Mode: Set"
             }
         };
 
@@ -783,8 +815,11 @@
                         totalStarsHtml += `<span class="${starClass}">★</span>`;
                     }
 
+                    // CORREGIDO: Se añade condicionalmente la clase 'long-text' si la longitud de la rareza excede los 18 caracteres
+                    const isLongTextClass = slot.displayRarity.length > 18 ? ' long-text' : '';
+
                     topHtml = `
-                        <div class="high-rarity-tag">
+                        <div class="high-rarity-tag${isLongTextClass}">
                             <span class="stars-container-inner">${totalStarsHtml}</span>
                             <span>${slot.displayRarity}</span>
                         </div>
@@ -794,7 +829,7 @@
                 }
 
                 slotDiv.innerHTML = `
-                    <div style="min-height: 24px; margin-bottom: 6px; display: flex; justify-content: center;">${topHtml}</div>
+                    <div style="min-height: 24px; margin-bottom: 6px; display: flex; justify-content: center; width: 100%; box-sizing: border-box;">${topHtml}</div>
                     <div>
                         <div class="img-container" title="${currentLang === 'es' ? 'Ampliar' : 'Enlarge'}">
                             <img src="${slot.images.small}" alt="${slot.name}" loading="lazy">
