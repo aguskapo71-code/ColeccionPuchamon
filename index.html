@@ -45,7 +45,7 @@
         .auth-group { 
             display: flex; 
             flex-direction: column; 
-            align-items: center; /* Centra las etiquetas e inputs internamente */
+            align-items: center; 
             text-align: center; 
             gap: 8px; 
             margin-bottom: 20px; 
@@ -59,7 +59,6 @@
             letter-spacing: 0.5px;
         }
         
-        /* Forzamos a que estos inputs específicos tengan un tamaño fijo y centrado */
         .auth-group input { 
             width: 100% !important; 
             max-width: 240px !important; 
@@ -127,12 +126,18 @@
         
         header { text-align: center; margin-bottom: 20px; background: #1f1f2a; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #2d2d3d; position: relative; }
         h1 { margin: 0 0 10px 0; color: #ffcb05; text-shadow: 2px 2px #3b4cca; font-size: 2.2em; }
-        .setup-panel { margin-bottom: 15px; }
+        .setup-panel { margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
         
         .header-controls { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; align-items: center; }
         .header-controls select { padding: 5px 10px; font-size: 0.9em; min-width: auto; }
         .logout-btn { background-color: #c0392b; font-size: 0.85em; padding: 6px 12px; }
         .logout-btn:hover { background-color: #a93226; }
+
+        /* Botón de cambio de modo Set/Master Set */
+        .mode-toggle-btn { background-color: #e67e22; border: 1px solid #d35400; color: white; padding: 10px 15px; font-size: 1em; font-weight: bold; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .mode-toggle-btn:hover { background-color: #d35400; transform: scale(1.02); }
+        .mode-toggle-btn.normal-set { background-color: #2980b9; border: 1px solid #2471a3; }
+        .mode-toggle-btn.normal-set:hover { background-color: #2471a3; }
 
         .filter-panel { 
             background: #1f1f2a; padding: 15px; border-radius: 12px; margin-bottom: 25px; 
@@ -264,6 +269,7 @@
                 <label for="set-id-input" id="txt-label-set">ID del Set en la API: </label>
                 <input type="text" id="set-id-input" value="sv4"> 
                 <button id="txt-btn-load">Cargar Set</button>
+                <button id="btn-mode-toggle" class="mode-toggle-btn">Modo: Master Set</button>
             </div>
             <div class="stats" id="stats-container">Introduce un ID de set y pulsa Cargar.</div>
         </header>
@@ -313,14 +319,11 @@
     </div>
 
 <script type="module">
-        // 1. IMPORTACIÓN DE COMPONENTES DE FIREBASE
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
-        // Añadimos el módulo de autenticación
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 
-        // 2. CREDENCIALES DE TU PROYECTO
         const firebaseConfig = {
             apiKey: "AIzaSyAUTKnWjDW3GjrkW16lrr6Ld0_IdCLM_K8",
             authDomain: "guia-coleccion-pokemon.firebaseapp.com",
@@ -332,21 +335,19 @@
             measurementId: "G-D4798WC2GE"
         };
 
-        // Inicializamos los servicios de Firebase
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // Variables de estado de la App
         let currentUser = null;
         let isLoginMode = true; 
         let currentCardsData = [];
         let collection = {};
         let currentSetId = "";
         let currentLang = "es";
+        let isMasterSetMode = true; // Controla si se calculan y muestran las variantes Reverse
 
-        // Diccionario de Idiomas
         const i18n = {
             es: {
                 title: "Master Set - Perfect Order", labelSet: "ID del Set en la API: ", btnLoad: "Cargar Set",
@@ -357,8 +358,9 @@
                 onlyRegular: "Normal / Holo", onlyReverse: "Reverse Holo", allSlots: "Todos los Slots",
                 collectedSlots: "Obtenidas", missingSlots: "Buscando", numAsc: "Menor a Mayor",
                 numDesc: "Mayor a Menor", nameAsc: "A - Z", nameDesc: "Z - A",
-                noSlots: "No hay compartimentos que coincidan con los filtros.", progress: "Progreso Master Set",
-                slotsCompleted: "espacios completados", cardCollected: "✓ Obtenida", cardMissing: "✕ No la tengo"
+                noSlots: "No hay compartimentos que coincidan con los filtros.", progressMaster: "Progreso Master Set",
+                progressNormal: "Progreso Normal Set", slotsCompleted: "espacios completados", 
+                cardCollected: "✓ Obtenida", cardMissing: "✕ No la tengo", modeMaster: "Modo: Master Set", modeNormal: "Modo: Normal Set"
             },
             en: {
                 title: "Master Set - Perfect Order", labelSet: "Set ID in API: ", btnLoad: "Load Set",
@@ -369,8 +371,9 @@
                 onlyRegular: "Regular / Holo Only", onlyReverse: "Reverse Holo Only", allSlots: "View All Slots",
                 collectedSlots: "Collected Slots", missingSlots: "Missing Slots", numAsc: "Number: Low to High",
                 numDesc: "Number: High to Low", nameAsc: "Name: A - Z", nameDesc: "Name: Z - A",
-                noSlots: "No slots match your filters.", progress: "Master Set Progress",
-                slotsCompleted: "slots completed", cardCollected: "✓ Collected", cardMissing: "✕ Not Collected"
+                noSlots: "No slots match your filters.", progressMaster: "Master Set Progress",
+                progressNormal: "Normal Set Progress", slotsCompleted: "slots completed", 
+                cardCollected: "✓ Collected", cardMissing: "✕ Not Collected", modeMaster: "Mode: Master Set", modeNormal: "Mode: Normal Set"
             }
         };
 
@@ -397,13 +400,12 @@
             'Promo':                     { variants: ['regular'],            badge: 'Promo',   badgeClass: 'normal',    slotClass: 'slot-regular',      tagType: null,        starCount: 0, starStyle: 'gold',   translateES: true  }
         };
 
-        // ASIGNACIÓN DE EVENTOS SEGUROS
         window.onload = function() {
             updateStaticTexts();
             
-            // Listeners de la interfaz general de Cartas
             document.getElementById('lang-selector').addEventListener('change', changeLanguage);
             document.getElementById('txt-btn-load').addEventListener('click', loadSetFromAPI);
+            document.getElementById('btn-mode-toggle').addEventListener('click', toggleSetMode);
             document.getElementById('search-input').addEventListener('input', filterAndRender);
             document.getElementById('rarity-filter').addEventListener('change', filterAndRender);
             document.getElementById('variant-filter').addEventListener('change', filterAndRender);
@@ -411,30 +413,25 @@
             document.getElementById('sort-order').addEventListener('change', filterAndRender);
             document.getElementById('preview-modal').addEventListener('click', closePreview);
             
-            // Listeners añadidos para el Control de Sesión
             document.getElementById('auth-form').addEventListener('submit', handleAuthFormSubmit);
             document.getElementById('auth-toggle').addEventListener('click', toggleAuthMode);
             document.getElementById('btn-logout').addEventListener('click', handleLogout);
 
-            // ESCUCHA DEL ESTADO DE AUTENTICACIÓN
             onAuthStateChanged(auth, (user) => {
                 const authPanel = document.getElementById('auth-panel');
                 const appWrapper = document.getElementById('app-wrapper');
 
                 if (user) {
-                    // El usuario inició sesión correctamente
                     currentUser = user;
                     authPanel.style.display = 'none';
                     appWrapper.style.display = 'block';
 
-                    // Si existía un set previo guardado, lo cargamos automáticamente
                     const savedSetId = localStorage.getItem('lastViewedSetId');
                     if (savedSetId) {
                         document.getElementById('set-id-input').value = savedSetId;
                         loadSetFromAPI();
                     }
                 } else {
-                    // El usuario no está autenticado, reiniciamos variables y forzamos login
                     currentUser = null;
                     currentCardsData = [];
                     collection = {};
@@ -450,7 +447,6 @@
         window.loadSetFromAPI = loadSetFromAPI;
         window.filterAndRender = filterAndRender;
 
-        // MANEJADORES DE LOGIN Y SESIÓN
         async function handleAuthFormSubmit(e) {
             e.preventDefault();
             const email = document.getElementById('auth-email').value.trim();
@@ -494,10 +490,42 @@
             }
         }
 
-        // LÓGICA TRADICIONAL DE LA APP (CON RUTA DE FIREBASE PROTEGIDA)
+        // Alterna entre modo Master Set (con Reverse) y Normal Set (Sin Reverse)
+        function toggleSetMode() {
+            isMasterSetMode = !isMasterSetMode;
+            const btn = document.getElementById('btn-mode-toggle');
+            const variantFilterGroup = document.getElementById('variant-filter').closest('.filter-group');
+            
+            updateModeButtonText();
+
+            if (!isMasterSetMode) {
+                btn.classList.add('normal-set');
+                document.getElementById('variant-filter').value = 'regular';
+                variantFilterGroup.style.display = 'none'; // Oculta el filtro de variantes porque no aplica
+            } else {
+                btn.classList.remove('normal-set');
+                document.getElementById('variant-filter').value = 'all';
+                variantFilterGroup.style.display = 'flex';
+            }
+
+            if (currentCardsData.length > 0) {
+                filterAndRender();
+            }
+        }
+
+        function updateModeButtonText() {
+            const btn = document.getElementById('btn-mode-toggle');
+            if (isMasterSetMode) {
+                btn.innerText = i18n[currentLang].modeMaster;
+            } else {
+                btn.innerText = i18n[currentLang].modeNormal;
+            }
+        }
+
         function changeLanguage() {
             currentLang = document.getElementById('lang-selector').value;
             updateStaticTexts();
+            updateModeButtonText();
             if (currentCardsData.length > 0) {
                 populateRarityFilter();
                 filterAndRender();
@@ -544,7 +572,8 @@
             statsContainer.innerText = i18n[currentLang].loading;
 
             try {
-                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}&orderBy=number`);
+                // MODIFICADO: Añadido &pageSize=600 para forzar a la API a traer hasta 600 cartas del set de una sola vez
+                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}&orderBy=number&pageSize=600`);
                 const result = await response.json();
 
                 if (!result.data || result.data.length === 0) {
@@ -553,7 +582,6 @@
 
                 currentCardsData = result.data;
 
-                // ESCUCHA EN TIEMPO REAL PERSONALIZADA POR ID DE USUARIO (¡MODIFICADO!)
                 const collectionRef = ref(db, `usuarios/${currentUser.uid}/masterSet_${currentSetId}`);
                 onValue(collectionRef, (snapshot) => {
                     collection = snapshot.val() || {};
@@ -634,6 +662,8 @@
             const sortOrder = document.getElementById('sort-order').value;
 
             let masterSetSlots = [];
+            let totalSlotsGlobal = 0;
+            let collectedSlotsGlobal = 0;
 
             currentCardsData.forEach(card => {
                 const cardNum = parseInt(card.number.replace(/\D/g, '')) || 0;
@@ -654,8 +684,17 @@
                 const translatedRarity = shouldTranslate ? rarityMap[rarity] : rarity;
 
                 profile.variants.forEach(variant => {
+                    // MODIFICADO: Si estamos en modo Normal (Set) ignoramos por completo procesar las variantes Reverse Holo
+                    if (!isMasterSetMode && variant === 'reverse') return;
+
                     if (!collection[card.id]) collection[card.id] = {};
                     if (collection[card.id][variant] === undefined) collection[card.id][variant] = false;
+
+                    const isCollected = collection[card.id][variant];
+
+                    // Contadores dinámicos para las estadísticas globales
+                    totalSlotsGlobal++;
+                    if (isCollected) collectedSlotsGlobal++;
 
                     masterSetSlots.push({
                         ...card,
@@ -667,12 +706,13 @@
                         tagType:       variant !== 'reverse' ? profile.tagType : null,
                         starCount:     profile.starCount,
                         starStyle:     profile.starStyle,
-                        isCollected:   collection[card.id][variant],
+                        isCollected:   isCollected,
                         numericSort:   cardNum
                     });
                 });
             });
 
+            // Filtros aplicados a los casilleros activos
             let filteredSlots = masterSetSlots.filter(slot => {
                 const matchesSearch = slot.name.toLowerCase().includes(searchTerm) || slot.number.toLowerCase().includes(searchTerm);
                 const matchesRarity = (selectedRarity === 'all') || (slot.displayRarity === selectedRarity);
@@ -695,7 +735,7 @@
                 return a.slotVariant === 'regular' ? -1 : (a.slotVariant === 'reverse' ? 0 : 1);
             });
 
-            renderSlots(filteredSlots, masterSetSlots.length, masterSetSlots.filter(s => s.isCollected).length);
+            renderSlots(filteredSlots, totalSlotsGlobal, collectedSlotsGlobal);
         }
 
         function renderSlots(slotsToRender, totalSlotsGlobal, collectedSlotsGlobal) {
@@ -755,16 +795,17 @@
                 container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #aaa; margin-top: 30px; font-size: 1.1em;">${l.noSlots}</div>`;
             }
 
+            // MODIFICADO: Ajustado el texto del progreso dinámicamente según el modo seleccionado
             const percentage = totalSlotsGlobal > 0 ? ((collectedSlotsGlobal / totalSlotsGlobal) * 100).toFixed(1) : 0;
-            statsContainer.innerText = `${l.progress} [${currentSetId.toUpperCase()}]: ${collectedSlotsGlobal} / ${totalSlotsGlobal} ${l.slotsCompleted} (${percentage}%)`;
+            const labelProgress = isMasterSetMode ? l.progressMaster : l.progressNormal;
+            statsContainer.innerText = `${labelProgress} [${currentSetId.toUpperCase()}]: ${collectedSlotsGlobal} / ${totalSlotsGlobal} ${l.slotsCompleted} (${percentage}%)`;
         }
 
         function toggleSlot(cardId, variantType) {
-            if (!currentUser) return; // Validación de seguridad en cliente
+            if (!currentUser) return;
 
             if (collection[cardId]) {
                 const currentStatus = collection[cardId][variantType];
-                // GUARDADO SEGURIZADO: Ruta específica bajo el ID del usuario actual (¡MODIFICADO!)
                 const slotRef = ref(db, `usuarios/${currentUser.uid}/masterSet_${currentSetId}/${cardId}/${variantType}`);
                 set(slotRef, !currentStatus);
             }
