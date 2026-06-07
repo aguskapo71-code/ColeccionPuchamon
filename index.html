@@ -169,12 +169,13 @@
     </div>
 
 <script type="module">
-        // 1. IMPORTACIÓN DE COMPONENTES DE FIREBASE
+        // 1. IMPORTACIÓN DE COMPONENTES DE FIREBASE (¡CORREGIDO!)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
+        // Agregamos la importación de la base de datos y sus funciones:
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
         // 2. CREDENCIALES DE TU PROYECTO
-        // IMPORTANTE: Asegúrate de completar tus datos reales aquí abajo y que figure el databaseURL
         const firebaseConfig = {
             apiKey: "AIzaSyAUTKnWjDW3GjrkW16lrr6Ld0_IdCLM_K8",
             authDomain: "guia-coleccion-pokemon.firebaseapp.com",
@@ -184,11 +185,13 @@
             messagingSenderId: "975098861721",
             appId: "1:975098861721:web:194e589302c1ff274b0008",
             measurementId: "G-D4798WC2GE"
-  };
+        };
 
         // Inicializamos la conexión con Firebase
-          const app = initializeApp(firebaseConfig);
-          const analytics = getAnalytics(app);
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        // Inicializamos la base de datos vinculándola con la constante 'db' que usa tu código:
+        const db = getDatabase(app);
 
         // Variables de estado de la App
         let currentCardsData = [];
