@@ -121,7 +121,7 @@
             color: #ffde59;
         }
 
-        /* HEADER Y CONTENIDOS (Ocultos inicialmente hasta el login) */
+        /* HEADER Y CONTENIDOS */
         .app-content { display: none; }
         
         header { text-align: center; margin-bottom: 20px; background: #1f1f2a; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #2d2d3d; position: relative; }
@@ -204,9 +204,9 @@
         .slot-gold-range { border-color: #5c4a1f; background: #362b13; }
         .slot-gold-range.collected { border-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); background: linear-gradient(145deg, #7a6229 0%, #b8953d 100%); }
 
-        .high-rarity-tag { background: rgba(0, 0, 0, 0.8); padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; color: #fff; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d4af37; box-shadow: 0 2px 6px rgba(0,0,0,0.6); }
-        .gold-star   { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.9); font-size: 1.1em; line-height: 1; }
-        .silver-star { color: #c8d8e8; text-shadow: 0 0 5px rgba(180, 210, 240, 0.9); font-size: 1.1em; line-height: 1; }
+        .high-rarity-tag { display: inline-flex; background: rgba(0, 0, 0, 0.8); padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; color: #fff; align-items: center; gap: 6px; border: 1px solid #d4af37; box-shadow: 0 2px 6px rgba(0,0,0,0.6); max-width: 90%; margin: 0 auto; white-space: nowrap; }
+        .gold-star   { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.9); font-size: 1.1em; line-height: 1; margin-right: -2px; }
+        .silver-star { color: #c8d8e8; text-shadow: 0 0 5px rgba(180, 210, 240, 0.9); font-size: 1.1em; line-height: 1; margin-right: -2px; }
         
         .rainbow-star { 
             background: linear-gradient(135deg, #ff7675, #ffeaa7, #55efc4, #74b9ff, #a29bfe);
@@ -216,6 +216,8 @@
             filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
             font-size: 1.1em; 
             line-height: 1;
+            margin-right: -2px;
+            display: inline-block;
             animation: rainbowShift 4s ease infinite;
         }
         @keyframes rainbowShift {
@@ -224,13 +226,7 @@
             100% { background-position: 0% 50%; }
         }
 
-        .stars-wrap { position: relative; display: inline-block; vertical-align: middle; }
-        .stars-wrap.double { width: 22px; height: 17px; }
-        .stars-wrap.triple { width: 29px; height: 23px; }
-        .stars-wrap .star { position: absolute; line-height: 1; font-size: 1.05em; }
-        .stars-wrap .star-1 { top: 0px; left: 0px; }
-        .stars-wrap .star-2 { top: 6px; left: 9px; }
-        .stars-wrap .star-3 { top: 12px; left: 18px; }
+        .stars-container-inner { display: inline-flex; align-items: center; }
         
         .card-info { margin: 5px 0 10px 0; font-size: 0.85em; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
         .card-name { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
@@ -694,7 +690,7 @@
                     const hasReverse = card.finishes && card.finishes.includes('reverseHolofoil');
                     profile = {
                         variants: hasNormal ? (hasReverse ? ['regular', 'reverse'] : ['regular']) : ['regular'],
-                        badge: 'Normal', badgeClass: 'normal', slotClass: 'slot-regular', tagType: null
+                        badge: 'Normal', badgeClass: 'normal', slotClass: 'slot-regular', tagType: null, starCount: 0, starStyle: 'gold'
                     };
                 }
 
@@ -703,7 +699,6 @@
                 const translatedRarity = shouldTranslate ? rarityMap[rarity] : rarity;
 
                 profile.variants.forEach(variant => {
-                    // CORREGIDO: En Modo Set normal, ignoramos pura y únicamente la variante 'reverse' (todas las cartas de alta rareza pasan sin importar su variant name)
                     if (!isMasterSetMode && variant === 'reverse') return;
 
                     if (!collection[card.id]) collection[card.id] = {};
@@ -722,20 +717,18 @@
                         badgeClass:    variant === 'reverse' ? 'reverse'      : profile.badgeClass,
                         slotClass:     variant === 'reverse' ? 'slot-reverse' : profile.slotClass,
                         tagType:       variant !== 'reverse' ? profile.tagType : null,
-                        starCount:     profile.starCount,
-                        starStyle:     profile.starStyle,
+                        starCount:     profile.starCount || 0,
+                        starStyle:     profile.starStyle || 'gold',
                         isCollected:   isCollected,
                         numericSort:   cardNum
                     });
                 });
             });
 
-            // Filtros visuales aplicados a la grid
             let filteredSlots = masterSetSlots.filter(slot => {
                 const matchesSearch = slot.name.toLowerCase().includes(searchTerm) || slot.number.toLowerCase().includes(searchTerm);
                 const matchesRarity = (selectedRarity === 'all') || (slot.displayRarity === selectedRarity);
                 
-                // Corrección del dropdown de variantes para que abarque todas las no-reverse bajo 'regular'
                 let matchesVariant = true;
                 if (selectedVariant === 'regular') {
                     matchesVariant = (slot.slotVariant !== 'reverse');
@@ -780,14 +773,25 @@
                     if (slot.starStyle === 'silver') starClass = 'silver-star';
                     if (slot.starStyle === 'rainbow') starClass = 'rainbow-star';
 
-                    const starsHtml = `<span class="${starClass}">★</span>`;
-                    topHtml = `<div class="high-rarity-tag">${starsHtml}<span>${slot.displayRarity}</span></div>`;
+                    // CORREGIDO: Bucle dinámico basado en slot.starCount para imprimir múltiples estrellas consecutivas
+                    let totalStarsHtml = '';
+                    const count = slot.starCount || 1;
+                    for (let i = 0; i < count; i++) {
+                        totalStarsHtml += `<span class="${starClass}">★</span>`;
+                    }
+
+                    topHtml = `
+                        <div class="high-rarity-tag">
+                            <span class="stars-container-inner">${totalStarsHtml}</span>
+                            <span>${slot.displayRarity}</span>
+                        </div>
+                    `;
                 } else {
                     topHtml = `<span class="variant-badge ${slot.badgeClass}">${slot.badgeText}</span>`;
                 }
 
                 slotDiv.innerHTML = `
-                    <div style="min-height: 24px; margin-bottom: 6px;">${topHtml}</div>
+                    <div style="min-height: 24px; margin-bottom: 6px; display: flex; justify-content: center;">${topHtml}</div>
                     <div>
                         <div class="img-container" title="${currentLang === 'es' ? 'Ampliar' : 'Enlarge'}">
                             <img src="${slot.images.small}" alt="${slot.name}" loading="lazy">
