@@ -166,12 +166,10 @@
         }
         .card-slot:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.8); }
         
-        /* CONTENEDOR DE LA IMAGEN: Ahora es relativo para permitir posicionar las estrellas sobre él */
         .img-container { 
             position: relative; background: #141419; border-radius: 6px; aspect-ratio: 245/342; 
             display: flex; align-items: center; justify-content: center; margin-bottom: 8px; cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            overflow: hidden;
         }
         .img-container:hover { transform: scale(1.03); box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); z-index: 2; }
         
@@ -190,8 +188,6 @@
         .card-slot.collected .variant-badge.ex { background: linear-gradient(45deg, #f1c40f, #e67e22); color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 
         .variant-badge.reverse { background: #4a3a2a; color: #bcaaa4; }
-        .variant-badge.full-art { background: transparent; color: #ffd700; font-size: 1.2em; letter-spacing: 1px; }
-        .card-slot.collected .variant-badge.full-art { color: #ffe566; text-shadow: 0 0 6px rgba(255, 215, 0, 0.7); }
         
         .slot-regular { border-color: #3a3a4a; }
         .slot-regular.collected { border-color: #4a90e2; box-shadow: 0 0 10px rgba(74, 144, 226, 0.3); }
@@ -206,37 +202,40 @@
         .slot-gold-range { border-color: #5c4a1f; background: #362b13; }
         .slot-gold-range.collected { border-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); background: linear-gradient(145deg, #7a6229 0%, #b8953d 100%); }
 
-        /* ESTRELLAS ESTILO TCG ORIGINAL (IMAGEN IZQUIERDA): Flotan sobre la esquina inferior izquierda de la carta */
-        .stars-container-inner { 
-            position: absolute;
-            left: 8px;
-            bottom: 8px;
+        /* ==========================================================================
+           RECUADRO NEGRO DE ALTAS RAREZAS (CORREGIDO PARA EVITAR DESBORDE)
+           ========================================================================== */
+        .high-rarity-tag { 
+            background-color: #000000; 
+            border-radius: 4px; 
+            padding: 3px 6px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 5px; 
+            max-width: calc(100% - 16px); /* Evita que supere el ancho de la tarjeta */
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .stars-container { 
             display: inline-flex; 
             align-items: center; 
             gap: 1px; 
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 2px 4px;
-            border-radius: 4px;
-            pointer-events: none;
+            flex-shrink: 0; /* Impide que las estrellas se encojan */
         }
-        
-        /* Efecto escalonado diagonal de las estrellas oficiales */
-        .stars-container-inner span:nth-child(2) { transform: translateY(-2px); }
-        .stars-container-inner span:nth-child(3) { transform: translateY(-4px); }
 
-        .gold-star   { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.9); font-size: 1.1em; line-height: 1; display: inline-block; }
-        .silver-star { color: #c8d8e8; text-shadow: 0 0 5px rgba(180, 210, 240, 0.9); font-size: 1.1em; line-height: 1; display: inline-block; }
+        .gold-star   { color: #ffd700; text-shadow: 0 0 3px rgba(255, 215, 0, 0.6); font-size: 0.9em; line-height: 1; }
+        .silver-star { color: #c8d8e8; text-shadow: 0 0 3px rgba(180, 210, 240, 0.6); font-size: 0.9em; line-height: 1; }
         
         .rainbow-star { 
             background: linear-gradient(135deg, #ff7675, #ffeaa7, #55efc4, #74b9ff, #a29bfe);
             background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
-            font-size: 1.1em; 
+            filter: drop-shadow(0 0 1px rgba(255,255,255,0.3));
+            font-size: 0.9em; 
             line-height: 1;
-            display: inline-block;
             animation: rainbowShift 4s ease infinite;
         }
         @keyframes rainbowShift {
@@ -244,22 +243,23 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+
+        /* TEXTO INTERNO: Control absoluto contra desbordamientos */
+        .high-rarity-text { 
+            color: #ffffff; 
+            font-size: 0.72em; /* Tamaño óptimo comprimido */
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: -0.2px; /* Espaciado compacto para máxima fidelidad */
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; /* Si es ridículamente largo, añade '...' dentro de la caja */
+        }
         
         .card-info { margin: 5px 0 10px 0; font-size: 0.85em; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
         .card-name { font-weight: bold; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
         .card-number { color: #aaa; font-size: 0.85em; display: block; margin-top: 2px; }
-        
-        /* DISEÑO DE TEXTO DE RAREZA (IMAGEN IZQUIERDA): Texto limpio y legible abajo */
-        .card-rarity { 
-            color: #ffcb05; 
-            font-size: 0.8em; 
-            font-weight: 500;
-            display: block; 
-            margin-top: 4px; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            white-space: nowrap; 
-        }
+        .card-rarity { color: #ffcb05; font-size: 0.8em; display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
         .action-button { width: 100%; padding: 8px; font-size: 0.85em; font-weight: bold; border-radius: 5px; cursor: pointer; transition: all 0.2s; background: #2d2d3d; color: #aaa; border: 1px solid #3d3d52; }
         .card-slot.collected .action-button { background: #27ae60; color: white; border-color: #2ecc71; }
@@ -795,9 +795,8 @@
                 slotDiv.className = `card-slot ${slot.slotClass} ${slot.isCollected ? 'collected' : ''}`;
 
                 let topLabelHtml = '';
-                let floatingStarsHtml = '';
 
-                // SI ES ALTA RAREZA (Gold / Silver / Rainbow Stars)
+                // SI ES ALTA RAREZA (Se dibuja la caja negra perfecta)
                 if (slot.tagType === 'gold-star') {
                     let starClass = 'gold-star';
                     if (slot.starStyle === 'silver') starClass = 'silver-star';
@@ -809,11 +808,15 @@
                         totalStars += `<span class="${starClass}">★</span>`;
                     }
 
-                    // Las estrellas flotan sobre la imagen
-                    floatingStarsHtml = `<div class="stars-container-inner">${totalStars}</div>`;
-                    topLabelHtml = `<span class="variant-badge normal" style="visibility: hidden;">Placeholder</span>`; // Mantiene la simetría de altura
+                    // CAJA NEGRA REUNIFICADA: Estrellas + Texto contenidos de manera segura
+                    topLabelHtml = `
+                        <div class="high-rarity-tag">
+                            <div class="stars-container">${totalStars}</div>
+                            <span class="high-rarity-text">${slot.displayRarity}</span>
+                        </div>
+                    `;
                 } else {
-                    // Si es regular, usa su badge normal arriba (Holo, Ex, Reverse, etc)
+                    // Si es una variante normal, usa su etiqueta regular (Holo, Reverse, etc.)
                     topLabelHtml = `<span class="variant-badge ${slot.badgeClass}">${slot.badgeText}</span>`;
                 }
 
@@ -824,7 +827,6 @@
                     <div>
                         <div class="img-container" title="${currentLang === 'es' ? 'Ampliar' : 'Enlarge'}">
                             <img src="${slot.images.small}" alt="${slot.name}" loading="lazy">
-                            ${floatingStarsHtml}
                         </div>
                         <div class="card-info">
                             <span class="card-name" title="${slot.name}">${slot.name}</span>
